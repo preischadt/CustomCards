@@ -1,103 +1,70 @@
 --Dusker
 function c420000056.initial_effect(c)
-	--first ss
-	c:EnableReviveLimit()
-	--materials
-	aux.AddFusionProcCodeFun(c, 28297833, c420000056.ffilter, 1, true, true)
-	--limit
-	local e1 = Effect.CreateEffect(c)
-	e1:SetType(EFFECT_TYPE_SINGLE)
-	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE + EFFECT_FLAG_UNCOPYABLE)
-	e1:SetCode(EFFECT_SPSUMMON_CONDITION)
-	-- e1:SetValue(c420000056.splimit)
-	c:RegisterEffect(e1)
-	--special summon rule
-	local e2 = Effect.CreateEffect(c)
-	e2:SetType(EFFECT_TYPE_FIELD)
-	e2:SetCode(EFFECT_SPSUMMON_PROC)
-	e2:SetProperty(EFFECT_FLAG_UNCOPYABLE)
-	e2:SetRange(LOCATION_EXTRA)
-	e2:SetValue(1)
-	e2:SetCondition(c420000056.sprcon)
-	e2:SetOperation(c420000056.sprop)
-	e2:SetCountLimit(1, 420000056)
-	c:RegisterEffect(e2)
+    --first ss
+    c:EnableReviveLimit()
+    --materials
+    Fusion.AddProcMix(c, true, true, 28297833, c420000056.ffilter)
+    Fusion.AddContactProc(c, c420000056.contactfil, c420000056.contactop, c420000056.splimit)
 
-	--banish
-	local e1 = Effect.CreateEffect(c)
-	e1:SetDescription(aux.Stringid(420000056, 0))
-	e1:SetCategory(CATEGORY_REMOVE)
-	e1:SetType(EFFECT_TYPE_SINGLE + EFFECT_TYPE_TRIGGER_O)
-	e1:SetProperty(EFFECT_FLAG_CARD_TARGET + EFFECT_FLAG_DELAY)
-	e1:SetCode(EVENT_SPSUMMON_SUCCESS)
-	e1:SetCost(c420000056.cost)
-	e1:SetTarget(c420000056.target)
-	e1:SetOperation(c420000056.operation)
-	c:RegisterEffect(e1)
+    --destroy
+    local e4 = Effect.CreateEffect(c)
+    e4:SetDescription(aux.Stringid(420000056, 2))
+    e4:SetCategory(CATEGORY_DESTROY)
+    e4:SetType(EFFECT_TYPE_QUICK_O)
+    e4:SetProperty(EFFECT_FLAG_CARD_TARGET)
+    e4:SetCode(EVENT_FREE_CHAIN)
+    e4:SetRange(LOCATION_MZONE)
+    e4:SetCountLimit(1)
+    e4:SetHintTiming(0, TIMINGS_CHECK_MONSTER_E)
+    e4:SetCost(c420000056.descost)
+    e4:SetTarget(c420000056.destg)
+    e4:SetOperation(c420000056.desop)
+    c:RegisterEffect(e4)
 end
 function c420000056.ffilter(c)
-	return (c:IsType(TYPE_XYZ) or c:IsCode(93568288)) and (c:IsRace(RACE_ZOMBIE) or c:IsAttribute(ATTRIBUTE_DARK))
+    return c:IsType(TYPE_XYZ) and (c:IsRace(RACE_ZOMBIE) or c:IsAttribute(ATTRIBUTE_DARK))
+end
+function c420000056.splimit(e, se, sp, st)
+    return false
 end
 
-function c420000056.spfilter1(c, tp)
-	return c:IsCode(28297833) and c:IsAbleToRemoveAsCost() and c:IsCanBeFusionMaterial(nil, true) and
-		Duel.IsExistingMatchingCard(c420000056.spfilter2, tp, LOCATION_MZONE + LOCATION_SZONE, 0, 1, c)
+function c420000056.matfil(c, tp)
+    return c:IsAbleToRemoveAsCost()
 end
-function c420000056.spfilter2(c)
-	return c420000056.ffilter(c) and c:IsAbleToRemoveAsCost() and c:IsCanBeFusionMaterial(nil, true)
+function c420000056.contactfil(tp)
+    return Duel.GetMatchingGroup(c420000056.matfil, tp, LOCATION_MZONE, 0, nil, tp)
 end
-function c420000056.sprcon(e, c)
-	if c == nil then
-		return true
-	end
-	local tp = c:GetControler()
-	return Duel.GetLocationCount(tp, LOCATION_MZONE) > -2 and
-		Duel.IsExistingMatchingCard(c420000056.spfilter1, tp, LOCATION_MZONE + LOCATION_SZONE, 0, 1, nil, tp)
-end
-function c420000056.sprop(e, tp, eg, ep, ev, re, r, rp, c)
-	Duel.Hint(HINT_SELECTMSG, tp, aux.Stringid(48156348, 2))
-	local g1 = Duel.SelectMatchingCard(tp, c420000056.spfilter1, tp, LOCATION_MZONE + LOCATION_SZONE, 0, 1, 1, nil, tp)
-	Duel.Hint(HINT_SELECTMSG, tp, aux.Stringid(48156348, 3))
-	local g2 =
-		Duel.SelectMatchingCard(tp, c420000056.spfilter2, tp, LOCATION_MZONE + LOCATION_SZONE, 0, 1, 1, g1:GetFirst())
-	g1:Merge(g2)
-	local tc = g1:GetFirst()
-	while tc do
-		--if not tc:IsFaceup() then Duel.ConfirmCards(1-tp,tc) end
-		tc = g1:GetNext()
-	end
-	Duel.Remove(g1, POS_FACEUP, REASON_COST)
+function c420000056.contactop(g)
+    Duel.Remove(g, POS_FACEUP, REASON_COST + REASON_MATERIAL)
 end
 
+local TYPE_FULL = TYPE_FUSION + TYPE_SYNCHRO + TYPE_XYZ + TYPE_LINK
 function c420000056.costfilter(c)
-	return c:IsAbleToRemoveAsCost() and c:IsSetCard(0x03) and c:IsType(TYPE_MONSTER)
+    return c:IsType(TYPE_MONSTER) and c:IsType(TYPE_FULL) and c:IsAbleToRemoveAsCost()
 end
-function c420000056.cost(e, tp, eg, ep, ev, re, r, rp, chk)
-	if chk == 0 then
-		return Duel.IsExistingMatchingCard(c420000056.costfilter, tp, LOCATION_GRAVE, 0, 1, e:GetHandler())
-	end
-	local rt = Duel.GetTargetCount(Card.IsAbleToRemove, tp, 0, LOCATION_ONFIELD, nil)
-	Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_REMOVE)
-	local cg = Duel.SelectMatchingCard(tp, c420000056.costfilter, tp, LOCATION_GRAVE, 0, 1, rt, nil)
-	Duel.Remove(cg, POS_FACEUP, REASON_COST)
-	e:SetLabel(cg:GetCount())
+function c420000056.descost(e, tp, eg, ep, ev, re, r, rp, chk)
+    if chk == 0 then
+        return Duel.IsExistingMatchingCard(c420000056.costfilter, tp, LOCATION_GRAVE, 0, 1, nil)
+    end
+    Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_REMOVE)
+    local g = Duel.SelectMatchingCard(tp, c420000056.costfilter, tp, LOCATION_GRAVE, 0, 1, 1, nil)
+    Duel.Remove(g, POS_FACEUP, REASON_COST)
 end
-function c420000056.target(e, tp, eg, ep, ev, re, r, rp, chk, chkc)
-	if chkc then
-		return chkc:IsOnField() and chkc:IsAbleToRemove()
-	end
-	if chk == 0 then
-		return Duel.IsExistingTarget(Card.IsAbleToRemove, tp, 0, LOCATION_ONFIELD, 1, nil)
-	end
-	local ct = e:GetLabel()
-	Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_REMOVE)
-	local eg = Duel.SelectTarget(tp, Card.IsAbleToRemove, tp, 0, LOCATION_ONFIELD, ct, ct, nil)
-	Duel.SetOperationInfo(0, CATEGORY_REMOVE, eg, ct, 0, 0)
+function c420000056.destg(e, tp, eg, ep, ev, re, r, rp, chk, chkc)
+    if chkc then
+        return chkc:IsOnField() and chkc:IsFaceup()
+    end
+    if chk == 0 then
+        return Duel.IsExistingTarget(Card.IsFaceup, tp, LOCATION_ONFIELD, LOCATION_ONFIELD, 1, nil)
+    end
+    Duel.Hint(HINT_OPSELECTED, 1 - tp, e:GetDescription())
+    Duel.Hint(HINT_SELECTMSG, tp, HINTMSG_DESTROY)
+    local g = Duel.SelectTarget(tp, Card.IsFaceup, tp, LOCATION_ONFIELD, LOCATION_ONFIELD, 1, 1, nil)
+    Duel.SetOperationInfo(0, CATEGORY_DESTROY, g, 1, 0, 0)
 end
-function c420000056.operation(e, tp, eg, ep, ev, re, r, rp, chk)
-	local tg = Duel.GetChainInfo(0, CHAININFO_TARGET_CARDS)
-	local rg = tg:Filter(Card.IsRelateToEffect, nil, e)
-	if rg:GetCount() > 0 then
-		Duel.Remove(rg, POS_FACEUP, REASON_EFFECT)
-	end
+function c420000056.desop(e, tp, eg, ep, ev, re, r, rp)
+    local tc = Duel.GetFirstTarget()
+    if tc:IsRelateToEffect(e) then
+        Duel.Destroy(tc, REASON_EFFECT)
+    end
 end
